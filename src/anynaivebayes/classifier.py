@@ -5,7 +5,6 @@ from nptyping import Float, Int, NDArray, Number, Shape
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 from .distribution import Distribution
-from .version import __version__
 
 
 class AnyNaiveBayesClassifier(BaseEstimator, ClassifierMixin):

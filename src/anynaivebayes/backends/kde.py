@@ -16,7 +16,7 @@ MetricParamsType: TypeAlias = dict[str, Any] | None
 
 
 @dataclass
-class SKLearnKDEDistribution(Distribution):
+class SKLearnKDE(Distribution):
     bandwidth: BandwidthType = "scott"
     kernel: KernelType = "gaussian"
     metric: MetricType = "euclidean"
@@ -36,7 +36,7 @@ class SKLearnKDEDistribution(Distribution):
 
 
 @dataclass
-class IndependentSKLearnDistribution(Distribution):
+class IndependentSKLearnKDE(Distribution):
     bandwidth: BandwidthType | list[BandwidthType] = "scott"
     kernel: KernelType | list[KernelType] = "gaussian"
     metric: MetricType | list[MetricType] = "euclidean"
@@ -85,10 +85,10 @@ class IndependentSKLearnDistribution(Distribution):
         else:
             metric_params_list = [self.metric_params] * n_features
 
-        self.kdes_ = []
+        self.kdes_: list[SKLearnKDE] = []
         for i in range(n_features):
             self.kdes_.append(
-                SKLearnKDEDistribution(
+                SKLearnKDE(
                     bandwidth=bandwidth_list[i],
                     kernel=kernel_list[i],
                     metric=metric_list[i],
@@ -100,5 +100,5 @@ class IndependentSKLearnDistribution(Distribution):
     def pdf(self, X: NDArray[Shape["N, D"], Float]) -> NDArray[Shape["N, D"], Float]:
         probs = []
         for i, kde in enumerate(self.kdes_):
-            probs.append(kde.evaluate(X[:, i : i + 1]))
+            probs.append(kde.pdf(X[:, i : i + 1]))
         return np.prod(probs, axis=0).T.copy()
