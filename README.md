@@ -50,7 +50,7 @@ class AnyBayesClassifier(BaseEstimator, ClassifierMixin):
     Methods
     -------
     fit(X, y)
-        Fit the Naive Bayes classifier to the training data.
+        Fit the classifier to the training data.
     predict_proba(X, class_weight=1.0)
         Predict the class probabilities for the given test data.
     predict(X, class_weight=1.0)
@@ -64,7 +64,7 @@ class AnyBayesClassifier(BaseEstimator, ClassifierMixin):
         self, X: NDArray[Shape["N, D"], Number], y: NDArray[Shape["N"], Int]
     ) -> Self:
         """
-        Fit the Naive Bayes classifier to the training data.
+        Fit the classifier to the training data.
 
         Parameters
         ----------
