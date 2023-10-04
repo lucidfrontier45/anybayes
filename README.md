@@ -126,3 +126,7 @@ class KDENaiveBayesClassifier(BaseEstimator, ClassifierMixin):
 ## Example
 
 Check notebooks in the `examples` directory.
+
+## Using Custom KDE Backend
+
+This package currently only includes scikit-learn's KDE implementaton. If you want to use others (e.g. scipy, statsmodels), you need to add custom wrapper class that implements `KDEBackend` abstract class. For more detail, please check `src/kdenaivebayes/backends/sklearn.py` to understand how it is implemented. 
