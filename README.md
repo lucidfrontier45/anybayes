@@ -1,5 +1,5 @@
-# KDE Naive Bayes
-Naive Bayes Classifier with Empirical Distribution by Kernel Density Estimation
+# AnyBayes
+A Bayesian Classifier with Any Distribution
 
 # Install
 
@@ -28,23 +28,22 @@ Then install/activate all extensions listed in `.vscode/extensions.json`
 ## API
 
 ```py
-class KDENaiveBayesClassifier(BaseEstimator, ClassifierMixin):
+class AnyBayesClassifier(BaseEstimator, ClassifierMixin):
     """
-    A Naive Bayes classifier using kernel density estimation (KDE) to estimate the class-conditional densities.
-
-    This class assumes that the features are independent given the class label, hence the "naive" assumption.
+    A Bayesian classifier that can use any distribution for the class-conditional densities.
 
     Parameters
     ----------
-    backend_factory : Callable[[], KDEBackend]
-        A callable that returns an instance of a `KDEBackend` class. This is used to create the KDE estimators for each class.
+    distribution_factory : Callable[[], Distribution]
+        A callable that returns an instance of a `Distribution` class. This is used to create the density estimators
+        for each class.
 
     Attributes
     ----------
-    backend_factory : Callable[[], KDEBackend]
-        The callable that returns an instance of a `KDEBackend` class.
-    kdes_ : list[KDEBackend]
-        A list of KDE estimators, one for each class.
+    distribution_factory : Callable[[], Distribution]
+        The callable that returns an instance of a `Distribution` class.
+    dists_ : list[Distribution]
+        A list of density estimators, one for each class.
     n_classes_ : int
         The number of classes in the training data.
 
@@ -58,7 +57,12 @@ class KDENaiveBayesClassifier(BaseEstimator, ClassifierMixin):
         Predict the class labels for the given test data.
     """
 
-    def fit(self, X: NDArray[Shape["N, D"], Float], y: NDArray[Shape["N"], Int]):
+    def __init__(self, distribution_factory: Callable[[], Distribution]):
+        ...
+
+    def fit(
+        self, X: NDArray[Shape["N, D"], Number], y: NDArray[Shape["N"], Int]
+    ) -> Self:
         """
         Fit the Naive Bayes classifier to the training data.
 
@@ -67,18 +71,18 @@ class KDENaiveBayesClassifier(BaseEstimator, ClassifierMixin):
         X : numpy.ndarray, shape (N, D)
             The training data, where N is the number of samples and D is the number of features.
         y : numpy.ndarray, shape (N,)
-            The class labels for each sample.
+            The class labels for each sample. The labels are assumed to start from 0 without gaps
 
         Returns
         -------
-        self : KDENaiveBayesClassifier
-            The fitted KDENaiveBayesClassifier instance.
+        self : AnyBayesClassifier
+            The fitted `AnyBayesClassifier` instance.
         """
         ...
 
     def predict_proba(
         self,
-        X: NDArray[Shape["N, D"], Float],
+        X: NDArray[Shape["N, D"], Number],
         class_weight: list[float] | float = 1.0,
     ) -> NDArray[Shape["N, C"], Float]:
         """
@@ -101,7 +105,7 @@ class KDENaiveBayesClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(
         self,
-        X: NDArray[Shape["N, D"], Float],
+        X: NDArray[Shape["N, D"], Number],
         class_weight: list[float] | float = 1.0,
     ) -> NDArray[Shape["N"], Int]:
         """
@@ -127,6 +131,6 @@ class KDENaiveBayesClassifier(BaseEstimator, ClassifierMixin):
 
 Check notebooks in the `examples` directory.
 
-## Using Custom KDE Backend
+## Implement Custom Backend Distribution
 
-This package currently only includes scikit-learn's KDE implementaton. If you want to use others (e.g. scipy, statsmodels), you need to add custom wrapper class that implements `KDEBackend` abstract class. For more detail, please check `src/kdenaivebayes/backends/sklearn.py` to understand how it is implemented. 
+This package currently only includes empirical distribution backed by scikit-learn's KDE. If you want to use other distributions you need to add custom wrapper class that implements `Distribution` abstract class. For more detail, please check `src/anybayes/backends/kde.py` to understand how it is implemented. 

@@ -5,7 +5,7 @@ import numpy as np
 from nptyping import Float, NDArray, Shape
 from sklearn.neighbors import KernelDensity
 
-from .base import KDEBackend
+from ..distribution import Distribution
 
 BandwidthType: TypeAlias = float | Literal["scott", "silverman"]
 KernelType: TypeAlias = Literal[
@@ -16,7 +16,7 @@ MetricParamsType: TypeAlias = dict[str, Any] | None
 
 
 @dataclass
-class SKLearnKDEBackend(KDEBackend):
+class SKLearnKDE(Distribution):
     bandwidth: BandwidthType = "scott"
     kernel: KernelType = "gaussian"
     metric: MetricType = "euclidean"
@@ -31,14 +31,12 @@ class SKLearnKDEBackend(KDEBackend):
         ).fit(X)
         return self
 
-    def evaluate(
-        self, X: NDArray[Shape["N, D"], Float]
-    ) -> NDArray[Shape["N, D"], Float]:
+    def pdf(self, X: NDArray[Shape["N, D"], Float]) -> NDArray[Shape["N, D"], Float]:
         return np.exp(self.kde_.score_samples(X))
 
 
 @dataclass
-class IndependentSKLearnKDEBackend(KDEBackend):
+class IndependentSKLearnKDE(Distribution):
     bandwidth: BandwidthType | list[BandwidthType] = "scott"
     kernel: KernelType | list[KernelType] = "gaussian"
     metric: MetricType | list[MetricType] = "euclidean"
@@ -87,10 +85,10 @@ class IndependentSKLearnKDEBackend(KDEBackend):
         else:
             metric_params_list = [self.metric_params] * n_features
 
-        self.kdes_ = []
+        self.kdes_: list[SKLearnKDE] = []
         for i in range(n_features):
             self.kdes_.append(
-                SKLearnKDEBackend(
+                SKLearnKDE(
                     bandwidth=bandwidth_list[i],
                     kernel=kernel_list[i],
                     metric=metric_list[i],
@@ -99,10 +97,8 @@ class IndependentSKLearnKDEBackend(KDEBackend):
             )
         return self
 
-    def evaluate(
-        self, X: NDArray[Shape["N, D"], Float]
-    ) -> NDArray[Shape["N, D"], Float]:
+    def pdf(self, X: NDArray[Shape["N, D"], Float]) -> NDArray[Shape["N, D"], Float]:
         probs = []
         for i, kde in enumerate(self.kdes_):
-            probs.append(kde.evaluate(X[:, i : i + 1]))
+            probs.append(kde.pdf(X[:, i : i + 1]))
         return np.prod(probs, axis=0).T.copy()
