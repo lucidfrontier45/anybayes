@@ -81,7 +81,7 @@ class IndependentSKLearnKDEBackend(KDEBackend):
         if isinstance(self.metric_params, list):
             if len(self.metric_params) != n_features:
                 raise ValueError(
-                    f"Expected {n_features} metric_params, got {len(self.metric_params)}"  # noqa: E501
+                    f"Expected {n_features} metric_params, got {len(self.metric_params)}"
                 )
             metric_params_list = self.metric_params
         else:
