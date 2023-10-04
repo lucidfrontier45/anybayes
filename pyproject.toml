@@ -1,6 +1,6 @@
 [project]
-name = "kde-naive-bayes"
-description = "Naive Bayesian Classifier with Empirical Estimation by Kernel Density Estimation"
+name = "any-bayes"
+description = "A Bayesian Classifier with Any Distribution"
 authors = [{ name = "杜 世橋 Du Shiqiao", email = "lucidfrontier.45@gmail.com" }]
 license = { text = "MIT" }
 dynamic = ["version"]
@@ -13,7 +13,7 @@ build-backend = "pdm.backend"
 
 [tool.pdm.version]
 source = "file"
-path = "src/kdenaivebayes/version.py"
+path = "src/anybayes/version.py"
 
 [tool.pdm.dev-dependencies]
 dev = [
@@ -30,7 +30,7 @@ black = "black ."
 pyright = "pyright ."
 ruff_lint = "ruff ."
 ruff_fix = "ruff --fix-only ."
-test = "pytest tests --cov=kdenaivebayes --cov-report=term --cov-report=xml"
+test = "pytest tests --cov=anybayes --cov-report=term --cov-report=xml"
 format = { composite = ["ruff_fix", "black"] }
 lint = { composite = ["ruff_lint", "pyright"] }
 check = { composite = ["format", "lint", "test"] }

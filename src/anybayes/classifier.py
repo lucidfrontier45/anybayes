@@ -1,30 +1,28 @@
-from typing import Callable
+from typing import Callable, Self
 
 import numpy as np
-from nptyping import Float, Int, NDArray, Shape
+from nptyping import Float, Int, NDArray, Number, Shape
 from sklearn.base import BaseEstimator, ClassifierMixin
 
-from .backends.base import KDEBackend
-from .version import __version__
+from .distribution import Distribution
 
 
-class KDENaiveBayesClassifier(BaseEstimator, ClassifierMixin):
+class AnyBayesClassifier(BaseEstimator, ClassifierMixin):
     """
-    A Naive Bayes classifier using kernel density estimation (KDE) to estimate the class-conditional densities.
-
-    This class assumes that the features are independent given the class label, hence the "naive" assumption.
+    A Bayesian classifier that can use any distribution for the class-conditional densities.
 
     Parameters
     ----------
-    backend_factory : Callable[[], KDEBackend]
-        A callable that returns an instance of a `KDEBackend` class. This is used to create the KDE estimators for each class.
+    distribution_factory : Callable[[], Distribution]
+        A callable that returns an instance of a `Distribution` class. This is used to create the density estimators
+        for each class.
 
     Attributes
     ----------
-    backend_factory : Callable[[], KDEBackend]
-        The callable that returns an instance of a `KDEBackend` class.
-    kdes_ : list[KDEBackend]
-        A list of KDE estimators, one for each class.
+    distribution_factory : Callable[[], Distribution]
+        The callable that returns an instance of a `Distribution` class.
+    dists_ : list[Distribution]
+        A list of density estimators, one for each class.
     n_classes_ : int
         The number of classes in the training data.
 
@@ -38,12 +36,14 @@ class KDENaiveBayesClassifier(BaseEstimator, ClassifierMixin):
         Predict the class labels for the given test data.
     """
 
-    def __init__(self, backend_factory: Callable[[], KDEBackend]):
-        self.backend_factory = backend_factory
-        self.kdes_: list[KDEBackend] = []
+    def __init__(self, distribution_factory: Callable[[], Distribution]):
+        self.distribution_factory = distribution_factory
+        self.dists_: list[Distribution] = []
         self.n_classes_: int = 0
 
-    def fit(self, X: NDArray[Shape["N, D"], Float], y: NDArray[Shape["N"], Int]):
+    def fit(
+        self, X: NDArray[Shape["N, D"], Number], y: NDArray[Shape["N"], Int]
+    ) -> Self:
         """
         Fit the Naive Bayes classifier to the training data.
 
@@ -52,26 +52,26 @@ class KDENaiveBayesClassifier(BaseEstimator, ClassifierMixin):
         X : numpy.ndarray, shape (N, D)
             The training data, where N is the number of samples and D is the number of features.
         y : numpy.ndarray, shape (N,)
-            The class labels for each sample.
+            The class labels for each sample. The labels are assumed to start from 0 without gaps
 
         Returns
         -------
-        self : KDENaiveBayesClassifier
-            The fitted KDENaiveBayesClassifier instance.
+        self : AnyBayesClassifier
+            The fitted `AnyBayesClassifier` instance.
         """
         # assumes y is a list of integers which starts from 0 without gaps
         self.n_classes_ = max(y) + 1
-        self.kdes_ = []
+        self.dists_ = []
         for class_ in range(self.n_classes_):
             mask = y == class_
             x = X[mask]
-            kde = self.backend_factory().fit(x)
-            self.kdes_.append(kde)
+            dist = self.distribution_factory().fit(x)
+            self.dists_.append(dist)
         return self
 
     def predict_proba(
         self,
-        X: NDArray[Shape["N, D"], Float],
+        X: NDArray[Shape["N, D"], Number],
         class_weight: list[float] | float = 1.0,
     ) -> NDArray[Shape["N, C"], Float]:
         """
@@ -102,14 +102,14 @@ class KDENaiveBayesClassifier(BaseEstimator, ClassifierMixin):
                 )
             class_weights = class_weight
         probs = []
-        for w, kde in zip(class_weights, self.kdes_):
-            probs.append(kde.evaluate(X) * w)
+        for w, dist in zip(class_weights, self.dists_):
+            probs.append(dist.pdf(X) * w)
         p = np.asarray(probs, dtype=np.float64).T.copy()
         return p / p.sum(axis=1, keepdims=True)
 
     def predict(
         self,
-        X: NDArray[Shape["N, D"], Float],
+        X: NDArray[Shape["N, D"], Number],
         class_weight: list[float] | float = 1.0,
     ) -> NDArray[Shape["N"], Int]:
         """
