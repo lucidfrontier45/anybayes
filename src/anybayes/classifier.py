@@ -1,33 +1,12 @@
-# AnyBayes
-A Bayesian Classifier with Any Distribution
+from typing import Callable, Self
 
-# Install
+import numpy as np
+from nptyping import Float, Int, NDArray, Number, Shape
+from sklearn.base import BaseEstimator, ClassifierMixin
 
-Please first install PDM >= 2.0 with pip/pipx.
+from .distribution import Distribution
 
-```bash
-pdm install --prod
-```
 
-# Develop
-
-```bash
-pdm install
-```
-
-# VSCode Settings
-
-```bash
-cp vscode_templates .vscode
-```
-
-Then install/activate all extensions listed in `.vscode/extensions.json`
-
-# Usage
-
-## API
-
-```py
 class AnyBayesClassifier(BaseEstimator, ClassifierMixin):
     """
     A Bayesian classifier that can use any distribution for the class-conditional densities.
@@ -58,7 +37,9 @@ class AnyBayesClassifier(BaseEstimator, ClassifierMixin):
     """
 
     def __init__(self, distribution_factory: Callable[[], Distribution]):
-        ...
+        self.distribution_factory = distribution_factory
+        self.dists_: list[Distribution] = []
+        self.n_classes_: int = 0
 
     def fit(
         self, X: NDArray[Shape["N, D"], Number], y: NDArray[Shape["N"], Int]
@@ -78,7 +59,15 @@ class AnyBayesClassifier(BaseEstimator, ClassifierMixin):
         self : AnyBayesClassifier
             The fitted `AnyBayesClassifier` instance.
         """
-        ...
+        # assumes y is a list of integers which starts from 0 without gaps
+        self.n_classes_ = max(y) + 1
+        self.dists_ = []
+        for class_ in range(self.n_classes_):
+            mask = y == class_
+            x = X[mask]
+            dist = self.distribution_factory().fit(x)
+            self.dists_.append(dist)
+        return self
 
     def predict_proba(
         self,
@@ -101,7 +90,22 @@ class AnyBayesClassifier(BaseEstimator, ClassifierMixin):
         probs : numpy.ndarray, shape (N, C)
             The predicted class probabilities for each sample, where C is the number of classes.
         """
-        ...
+        if self.n_classes_ == 0:
+            raise RuntimeError("You must fit the model before predicting")
+
+        if isinstance(class_weight, float):
+            class_weights = [class_weight] * self.n_classes_
+        else:
+            if len(class_weight) != self.n_classes_:
+                raise ValueError(
+                    f"Expected {self.n_classes_} class weights, got {len(class_weight)}"
+                )
+            class_weights = class_weight
+        probs = []
+        for w, dist in zip(class_weights, self.dists_):
+            probs.append(dist.pdf(X) * w)
+        p = np.asarray(probs, dtype=np.float64).T.copy()
+        return p / p.sum(axis=1, keepdims=True)
 
     def predict(
         self,
@@ -124,13 +128,5 @@ class AnyBayesClassifier(BaseEstimator, ClassifierMixin):
         labels : numpy.ndarray, shape (N,)
             The predicted class labels for each sample.
         """
-        ...
-```
-
-## Example
-
-Check notebooks in the `examples` directory.
-
-## Implement Custom Backend Distribution
-
-This package currently only includes empirical distribution backed by scikit-learn's KDE. If you want to use other distributions you need to add custom wrapper class that implements `Distribution` abstract class. For more detail, please check `src/anybayes/backends/kde.py` to understand how it is implemented. 
+        probs = self.predict_proba(X, class_weight=class_weight)
+        return np.argmax(probs, axis=1)
